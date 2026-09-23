@@ -1,14 +1,512 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — Kafi Portfolio</title><link rel="stylesheet" href="admin.css"></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Admin — Kafi Portfolio</title>
+
+  <link rel="stylesheet" href="./admin.css" />
+</head>
+
 <body>
-<main class="admin-shell">
-<header><div><span class="eyebrow">KA / ADMIN</span><h1>Portfolio control room</h1><p>Manage published projects and blog posts from Firebase.</p></div><a href="../index.html">View site ↗</a></header>
-<section id="login-card" class="panel"><h2>Admin login</h2><p>Use a Firebase Authentication account. Enable Email/Password in Firebase Console first.</p><form id="login-form"><input id="email" type="email" placeholder="Admin email" required><input id="password" type="password" placeholder="Password" required><button>Sign in</button><p id="login-status"></p></form></section>
-<section id="dashboard" class="hidden">
-<div class="toolbar"><div><strong id="user-email"></strong><span id="count"></span></div><button id="logout" class="ghost">Sign out</button></div>
-<div class="tabs"><button class="tab active" data-tab="projects">Projects</button><button class="tab" data-tab="posts">Blog posts</button></div>
-<div id="projects-panel" class="panel"><div class="panel-head"><h2>Projects</h2><button id="new-project">+ New project</button></div><div id="project-list"></div></div>
-<div id="posts-panel" class="panel hidden"><div class="panel-head"><h2>Blog posts</h2><button id="new-post">+ New post</button></div><div id="post-list"></div></div>
-</section>
-</main>
-<script type="module" src="admin.js"></script></body></html>
+
+  <main class="admin-shell">
+
+    <!-- HEADER -->
+    <header class="admin-header">
+      <div>
+        <div class="eyebrow">KA / ADMIN</div>
+
+        <h1>Portfolio control room</h1>
+
+        <p>
+          Manage published projects and blog posts from Firebase.
+        </p>
+      </div>
+
+      <a
+        href="../index.html"
+        class="view-site"
+      >
+        View site ↗
+      </a>
+    </header>
+
+
+    <!-- ============================= -->
+    <!-- LOGIN -->
+    <!-- ============================= -->
+
+    <section
+      id="loginView"
+      class="panel"
+    >
+
+      <h2>Admin login</h2>
+
+      <p class="muted">
+        Use your Firebase Authentication email and password.
+      </p>
+
+
+      <form
+        id="loginForm"
+        autocomplete="on"
+      >
+
+        <div class="field">
+
+          <label for="adminEmail">
+            Email
+          </label>
+
+          <input
+            type="email"
+            id="adminEmail"
+            name="email"
+            placeholder="Admin email"
+            autocomplete="username"
+            required
+          />
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="adminPassword">
+            Password
+          </label>
+
+          <input
+            type="password"
+            id="adminPassword"
+            name="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
+
+        </div>
+
+
+        <button
+          type="submit"
+          id="loginBtn"
+          class="primary-btn"
+        >
+          Sign in
+        </button>
+
+
+        <div
+          id="loginMessage"
+          class="message"
+          aria-live="polite"
+        ></div>
+
+      </form>
+
+    </section>
+
+
+
+    <!-- ============================= -->
+    <!-- DASHBOARD -->
+    <!-- ============================= -->
+
+    <section
+      id="dashboardView"
+      class="dashboard hidden"
+    >
+
+      <div class="dashboard-top">
+
+        <div>
+          <div class="eyebrow">
+            DASHBOARD
+          </div>
+
+          <h2>Content manager</h2>
+
+          <p id="currentUser" class="muted"></p>
+        </div>
+
+
+        <button
+          type="button"
+          id="logoutBtn"
+          class="secondary-btn"
+        >
+          Sign out
+        </button>
+
+      </div>
+
+
+
+      <!-- TABS -->
+
+      <div class="tabs">
+
+        <button
+          type="button"
+          class="tab active"
+          data-tab="projects"
+        >
+          Projects
+        </button>
+
+        <button
+          type="button"
+          class="tab"
+          data-tab="posts"
+        >
+          Blog
+        </button>
+
+      </div>
+
+
+
+      <!-- ============================= -->
+      <!-- PROJECTS -->
+      <!-- ============================= -->
+
+      <section
+        id="projectsTab"
+        class="tab-content"
+      >
+
+        <div class="content-header">
+
+          <div>
+            <h3>Projects</h3>
+
+            <p class="muted">
+              Add and manage portfolio projects.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            id="newProjectBtn"
+            class="primary-btn small"
+          >
+            + New project
+          </button>
+
+        </div>
+
+
+        <!-- PROJECT FORM -->
+
+        <form
+          id="projectForm"
+          class="editor-form hidden"
+        >
+
+          <input
+            type="hidden"
+            id="projectId"
+          />
+
+
+          <div class="field">
+
+            <label for="projectTitle">
+              Project title
+            </label>
+
+            <input
+              type="text"
+              id="projectTitle"
+              placeholder="My Portfolio Website"
+              required
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="projectDescription">
+              Description
+            </label>
+
+            <textarea
+              id="projectDescription"
+              rows="5"
+              placeholder="Short project description..."
+              required
+            ></textarea>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="projectUrl">
+              Project URL
+            </label>
+
+            <input
+              type="url"
+              id="projectUrl"
+              placeholder="https://example.com"
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="projectLabel">
+              Label
+            </label>
+
+            <input
+              type="text"
+              id="projectLabel"
+              placeholder="Web Development"
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="projectTags">
+              Tags
+            </label>
+
+            <input
+              type="text"
+              id="projectTags"
+              placeholder="HTML, CSS, JavaScript"
+            />
+
+            <small>
+              Separate tags with commas.
+            </small>
+
+          </div>
+
+
+          <label class="checkbox">
+
+            <input
+              type="checkbox"
+              id="projectPublished"
+              checked
+            />
+
+            <span>
+              Publish this project
+            </span>
+
+          </label>
+
+
+          <div class="form-actions">
+
+            <button
+              type="submit"
+              class="primary-btn"
+              id="saveProjectBtn"
+            >
+              Save project
+            </button>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              id="cancelProjectBtn"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </form>
+
+
+        <!-- PROJECT LIST -->
+
+        <div
+          id="projectsList"
+          class="items-list"
+        ></div>
+
+      </section>
+
+
+
+      <!-- ============================= -->
+      <!-- BLOG -->
+      <!-- ============================= -->
+
+      <section
+        id="postsTab"
+        class="tab-content hidden"
+      >
+
+        <div class="content-header">
+
+          <div>
+
+            <h3>Blog posts</h3>
+
+            <p class="muted">
+              Write and manage your blog posts.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            id="newPostBtn"
+            class="primary-btn small"
+          >
+            + New post
+          </button>
+
+        </div>
+
+
+        <!-- BLOG FORM -->
+
+        <form
+          id="postForm"
+          class="editor-form hidden"
+        >
+
+          <input
+            type="hidden"
+            id="postId"
+          />
+
+
+          <div class="field">
+
+            <label for="postTitle">
+              Post title
+            </label>
+
+            <input
+              type="text"
+              id="postTitle"
+              placeholder="My first blog post"
+              required
+            />
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="postExcerpt">
+              Excerpt
+            </label>
+
+            <textarea
+              id="postExcerpt"
+              rows="4"
+              placeholder="Short summary of the post..."
+              required
+            ></textarea>
+
+          </div>
+
+
+          <div class="field">
+
+            <label for="postContent">
+              Content
+            </label>
+
+            <textarea
+              id="postContent"
+              rows="12"
+              placeholder="Write your blog post here..."
+              required
+            ></textarea>
+
+          </div>
+
+
+          <label class="checkbox">
+
+            <input
+              type="checkbox"
+              id="postPublished"
+              checked
+            />
+
+            <span>
+              Publish this post
+            </span>
+
+          </label>
+
+
+          <div class="form-actions">
+
+            <button
+              type="submit"
+              class="primary-btn"
+              id="savePostBtn"
+            >
+              Save post
+            </button>
+
+            <button
+              type="button"
+              class="secondary-btn"
+              id="cancelPostBtn"
+            >
+              Cancel
+            </button>
+
+          </div>
+
+        </form>
+
+
+        <!-- BLOG LIST -->
+
+        <div
+          id="postsList"
+          class="items-list"
+        ></div>
+
+      </section>
+
+
+
+      <!-- GLOBAL MESSAGE -->
+
+      <div
+        id="dashboardMessage"
+        class="message"
+        aria-live="polite"
+      ></div>
+
+    </section>
+
+  </main>
+
+
+  <!-- Firebase/Admin JavaScript -->
+  <script
+    type="module"
+    src="./admin.js"
+  ></script>
+
+</body>
+</html>
