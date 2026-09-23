@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin — Kafi Portfolio</title><link rel="stylesheet" href="admin.css"></head>
+<body>
+<main class="admin-shell">
+<header><div><span class="eyebrow">KA / ADMIN</span><h1>Portfolio control room</h1><p>Manage published projects and blog posts from Firebase.</p></div><a href="../index.html">View site ↗</a></header>
+<section id="login-card" class="panel"><h2>Admin login</h2><p>Use a Firebase Authentication account. Enable Email/Password in Firebase Console first.</p><form id="login-form"><input id="email" type="email" placeholder="Admin email" required><input id="password" type="password" placeholder="Password" required><button>Sign in</button><p id="login-status"></p></form></section>
+<section id="dashboard" class="hidden">
+<div class="toolbar"><div><strong id="user-email"></strong><span id="count"></span></div><button id="logout" class="ghost">Sign out</button></div>
+<div class="tabs"><button class="tab active" data-tab="projects">Projects</button><button class="tab" data-tab="posts">Blog posts</button></div>
+<div id="projects-panel" class="panel"><div class="panel-head"><h2>Projects</h2><button id="new-project">+ New project</button></div><div id="project-list"></div></div>
+<div id="posts-panel" class="panel hidden"><div class="panel-head"><h2>Blog posts</h2><button id="new-post">+ New post</button></div><div id="post-list"></div></div>
+</section>
+</main>
+<script type="module" src="admin.js"></script></body></html>
