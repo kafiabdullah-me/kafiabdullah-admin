@@ -1,512 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Kafi Portfolio</title>
-
-  <link rel="stylesheet" href="./admin.css" />
+  <link rel="stylesheet" href="./admin.css">
 </head>
-
 <body>
+<main class="admin-shell">
+  <header>
+    <div>
+      <div class="eyebrow">KA / ADMIN</div>
+      <h1>Portfolio control room</h1>
+      <p>Manage published projects and blog posts from Firebase.</p>
+    </div>
+    <a href="../index.html">View site ↗</a>
+  </header>
 
-  <main class="admin-shell">
+  <section id="loginView" class="panel">
+    <h2>Admin login</h2>
+    <p class="muted">Use your Firebase Authentication email and password.</p>
 
-    <!-- HEADER -->
-    <header class="admin-header">
+    <form id="loginForm" autocomplete="on">
+      <label>Email
+        <input type="email" id="adminEmail" name="email" placeholder="Admin email"
+               autocomplete="username" required>
+      </label>
+
+      <label>Password
+        <input type="password" id="adminPassword" name="password" placeholder="Password"
+               autocomplete="current-password" required>
+      </label>
+
+      <button type="submit" id="loginBtn">Sign in</button>
+      <div id="loginMessage" class="message" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section id="dashboardView" class="dashboard hidden">
+    <div class="toolbar">
       <div>
-        <div class="eyebrow">KA / ADMIN</div>
+        <strong>Content manager</strong>
+        <span id="currentUser"></span>
+      </div>
+      <button type="button" id="logoutBtn" class="ghost">Sign out</button>
+    </div>
 
-        <h1>Portfolio control room</h1>
+    <div class="tabs">
+      <button type="button" class="active" data-tab="projects">Projects</button>
+      <button type="button" data-tab="posts">Blog</button>
+    </div>
 
-        <p>
-          Manage published projects and blog posts from Firebase.
-        </p>
+    <section id="projectsTab" class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Projects</h2>
+          <p class="muted">Add and manage portfolio projects.</p>
+        </div>
+        <button type="button" id="newProjectBtn">+ New project</button>
       </div>
 
-      <a
-        href="../index.html"
-        class="view-site"
-      >
-        View site ↗
-      </a>
-    </header>
+      <form id="projectForm" class="editor-form hidden">
+        <input type="hidden" id="projectId">
 
+        <label>Project title
+          <input type="text" id="projectTitle" placeholder="My Portfolio Website" required>
+        </label>
 
-    <!-- ============================= -->
-    <!-- LOGIN -->
-    <!-- ============================= -->
+        <label>Description
+          <textarea id="projectDescription" rows="5"
+                    placeholder="Short project description..." required></textarea>
+        </label>
 
-    <section
-      id="loginView"
-      class="panel"
-    >
+        <label>Project URL
+          <input type="url" id="projectUrl" placeholder="https://example.com">
+        </label>
 
-      <h2>Admin login</h2>
+        <label>Label
+          <input type="text" id="projectLabel" placeholder="Web Development">
+        </label>
 
-      <p class="muted">
-        Use your Firebase Authentication email and password.
-      </p>
+        <label>Tags
+          <input type="text" id="projectTags" placeholder="HTML, CSS, JavaScript">
+          <small>Separate tags with commas.</small>
+        </label>
 
+        <label class="check">
+          <input type="checkbox" id="projectPublished" checked>
+          <span>Publish this project</span>
+        </label>
 
-      <form
-        id="loginForm"
-        autocomplete="on"
-      >
-
-        <div class="field">
-
-          <label for="adminEmail">
-            Email
-          </label>
-
-          <input
-            type="email"
-            id="adminEmail"
-            name="email"
-            placeholder="Admin email"
-            autocomplete="username"
-            required
-          />
-
+        <div class="form-actions">
+          <button type="submit" id="saveProjectBtn">Save project</button>
+          <button type="button" id="cancelProjectBtn" class="ghost">Cancel</button>
         </div>
-
-
-        <div class="field">
-
-          <label for="adminPassword">
-            Password
-          </label>
-
-          <input
-            type="password"
-            id="adminPassword"
-            name="password"
-            placeholder="Password"
-            autocomplete="current-password"
-            required
-          />
-
-        </div>
-
-
-        <button
-          type="submit"
-          id="loginBtn"
-          class="primary-btn"
-        >
-          Sign in
-        </button>
-
-
-        <div
-          id="loginMessage"
-          class="message"
-          aria-live="polite"
-        ></div>
-
+        <div id="projectMessage" class="message" aria-live="polite"></div>
       </form>
 
+      <div id="projectsList" class="items-list"></div>
     </section>
 
-
-
-    <!-- ============================= -->
-    <!-- DASHBOARD -->
-    <!-- ============================= -->
-
-    <section
-      id="dashboardView"
-      class="dashboard hidden"
-    >
-
-      <div class="dashboard-top">
-
+    <section id="postsTab" class="panel hidden">
+      <div class="panel-head">
         <div>
-          <div class="eyebrow">
-            DASHBOARD
-          </div>
-
-          <h2>Content manager</h2>
-
-          <p id="currentUser" class="muted"></p>
+          <h2>Blog posts</h2>
+          <p class="muted">Write and manage your blog posts.</p>
         </div>
-
-
-        <button
-          type="button"
-          id="logoutBtn"
-          class="secondary-btn"
-        >
-          Sign out
-        </button>
-
+        <button type="button" id="newPostBtn">+ New post</button>
       </div>
 
+      <form id="postForm" class="editor-form hidden">
+        <input type="hidden" id="postId">
 
+        <label>Post title
+          <input type="text" id="postTitle" placeholder="My first blog post" required>
+        </label>
 
-      <!-- TABS -->
+        <label>Excerpt
+          <textarea id="postExcerpt" rows="4"
+                    placeholder="Short summary of the post..." required></textarea>
+        </label>
 
-      <div class="tabs">
+        <label>Content
+          <textarea id="postContent" rows="12"
+                    placeholder="Write your blog post here..." required></textarea>
+        </label>
 
-        <button
-          type="button"
-          class="tab active"
-          data-tab="projects"
-        >
-          Projects
-        </button>
+        <label class="check">
+          <input type="checkbox" id="postPublished" checked>
+          <span>Publish this post</span>
+        </label>
 
-        <button
-          type="button"
-          class="tab"
-          data-tab="posts"
-        >
-          Blog
-        </button>
-
-      </div>
-
-
-
-      <!-- ============================= -->
-      <!-- PROJECTS -->
-      <!-- ============================= -->
-
-      <section
-        id="projectsTab"
-        class="tab-content"
-      >
-
-        <div class="content-header">
-
-          <div>
-            <h3>Projects</h3>
-
-            <p class="muted">
-              Add and manage portfolio projects.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            id="newProjectBtn"
-            class="primary-btn small"
-          >
-            + New project
-          </button>
-
+        <div class="form-actions">
+          <button type="submit" id="savePostBtn">Save post</button>
+          <button type="button" id="cancelPostBtn" class="ghost">Cancel</button>
         </div>
+        <div id="postMessage" class="message" aria-live="polite"></div>
+      </form>
 
-
-        <!-- PROJECT FORM -->
-
-        <form
-          id="projectForm"
-          class="editor-form hidden"
-        >
-
-          <input
-            type="hidden"
-            id="projectId"
-          />
-
-
-          <div class="field">
-
-            <label for="projectTitle">
-              Project title
-            </label>
-
-            <input
-              type="text"
-              id="projectTitle"
-              placeholder="My Portfolio Website"
-              required
-            />
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="projectDescription">
-              Description
-            </label>
-
-            <textarea
-              id="projectDescription"
-              rows="5"
-              placeholder="Short project description..."
-              required
-            ></textarea>
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="projectUrl">
-              Project URL
-            </label>
-
-            <input
-              type="url"
-              id="projectUrl"
-              placeholder="https://example.com"
-            />
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="projectLabel">
-              Label
-            </label>
-
-            <input
-              type="text"
-              id="projectLabel"
-              placeholder="Web Development"
-            />
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="projectTags">
-              Tags
-            </label>
-
-            <input
-              type="text"
-              id="projectTags"
-              placeholder="HTML, CSS, JavaScript"
-            />
-
-            <small>
-              Separate tags with commas.
-            </small>
-
-          </div>
-
-
-          <label class="checkbox">
-
-            <input
-              type="checkbox"
-              id="projectPublished"
-              checked
-            />
-
-            <span>
-              Publish this project
-            </span>
-
-          </label>
-
-
-          <div class="form-actions">
-
-            <button
-              type="submit"
-              class="primary-btn"
-              id="saveProjectBtn"
-            >
-              Save project
-            </button>
-
-            <button
-              type="button"
-              class="secondary-btn"
-              id="cancelProjectBtn"
-            >
-              Cancel
-            </button>
-
-          </div>
-
-        </form>
-
-
-        <!-- PROJECT LIST -->
-
-        <div
-          id="projectsList"
-          class="items-list"
-        ></div>
-
-      </section>
-
-
-
-      <!-- ============================= -->
-      <!-- BLOG -->
-      <!-- ============================= -->
-
-      <section
-        id="postsTab"
-        class="tab-content hidden"
-      >
-
-        <div class="content-header">
-
-          <div>
-
-            <h3>Blog posts</h3>
-
-            <p class="muted">
-              Write and manage your blog posts.
-            </p>
-
-          </div>
-
-
-          <button
-            type="button"
-            id="newPostBtn"
-            class="primary-btn small"
-          >
-            + New post
-          </button>
-
-        </div>
-
-
-        <!-- BLOG FORM -->
-
-        <form
-          id="postForm"
-          class="editor-form hidden"
-        >
-
-          <input
-            type="hidden"
-            id="postId"
-          />
-
-
-          <div class="field">
-
-            <label for="postTitle">
-              Post title
-            </label>
-
-            <input
-              type="text"
-              id="postTitle"
-              placeholder="My first blog post"
-              required
-            />
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="postExcerpt">
-              Excerpt
-            </label>
-
-            <textarea
-              id="postExcerpt"
-              rows="4"
-              placeholder="Short summary of the post..."
-              required
-            ></textarea>
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="postContent">
-              Content
-            </label>
-
-            <textarea
-              id="postContent"
-              rows="12"
-              placeholder="Write your blog post here..."
-              required
-            ></textarea>
-
-          </div>
-
-
-          <label class="checkbox">
-
-            <input
-              type="checkbox"
-              id="postPublished"
-              checked
-            />
-
-            <span>
-              Publish this post
-            </span>
-
-          </label>
-
-
-          <div class="form-actions">
-
-            <button
-              type="submit"
-              class="primary-btn"
-              id="savePostBtn"
-            >
-              Save post
-            </button>
-
-            <button
-              type="button"
-              class="secondary-btn"
-              id="cancelPostBtn"
-            >
-              Cancel
-            </button>
-
-          </div>
-
-        </form>
-
-
-        <!-- BLOG LIST -->
-
-        <div
-          id="postsList"
-          class="items-list"
-        ></div>
-
-      </section>
-
-
-
-      <!-- GLOBAL MESSAGE -->
-
-      <div
-        id="dashboardMessage"
-        class="message"
-        aria-live="polite"
-      ></div>
-
+      <div id="postsList" class="items-list"></div>
     </section>
 
-  </main>
+    <div id="dashboardMessage" class="message" aria-live="polite"></div>
+  </section>
+</main>
 
-
-  <!-- Firebase/Admin JavaScript -->
-  <script
-    type="module"
-    src="./admin.js"
-  ></script>
-
+<script type="module" src="./admin.js"></script>
 </body>
 </html>

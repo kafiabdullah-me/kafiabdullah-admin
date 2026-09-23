@@ -1,12 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-
 import {
   getAuth,
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  signOut
+  signOut,
+  getIdTokenResult
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-
 import {
   getFirestore,
   collection,
@@ -15,35 +14,28 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  orderBy,
-  query,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-
 import { firebaseConfig } from "./firebase-config.js";
-
-
-// ============================================================
-// FIREBASE INITIALIZATION
-// ============================================================
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-
-// ============================================================
-// ELEMENTS
-// ============================================================
-
-const loginSection = document.getElementById("loginSection");
-const dashboardSection = document.getElementById("dashboardSection");
+// ------------------------------
+// DOM
+// ------------------------------
+const loginView = document.getElementById("loginView");
+const dashboardView = document.getElementById("dashboardView");
 
 const loginForm = document.getElementById("loginForm");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
+const adminEmail = document.getElementById("adminEmail");
+const adminPassword = document.getElementById("adminPassword");
+const loginBtn = document.getElementById("loginBtn");
 const loginMessage = document.getElementById("loginMessage");
 
+const currentUser = document.getElementById("currentUser");
+const dashboardMessage = document.getElementById("dashboardMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const projectsList = document.getElementById("projectsList");
@@ -51,479 +43,399 @@ const postsList = document.getElementById("postsList");
 
 const projectForm = document.getElementById("projectForm");
 const postForm = document.getElementById("postForm");
+const projectId = document.getElementById("projectId");
+const postId = document.getElementById("postId");
+
+const newProjectBtn = document.getElementById("newProjectBtn");
+const cancelProjectBtn = document.getElementById("cancelProjectBtn");
+const newPostBtn = document.getElementById("newPostBtn");
+const cancelPostBtn = document.getElementById("cancelPostBtn");
 
 const projectMessage = document.getElementById("projectMessage");
 const postMessage = document.getElementById("postMessage");
 
+function setMessage(el, text, type = "") {
+  if (!el) return;
+  el.textContent = text;
+  el.className = `message ${type}`.trim();
+}
 
-// ============================================================
-// AUTH STATE
-// ============================================================
+function setBusy(button, busy, busyText, normalText) {
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? busyText : normalText;
+}
 
+// ------------------------------
+// AUTH
+// ------------------------------
 onAuthStateChanged(auth, async (user) => {
-
-  if (user) {
-
-    console.log("Logged in:", user.email);
-
-    loginSection.style.display = "none";
-    dashboardSection.style.display = "block";
-
-    await loadProjects();
-    await loadPosts();
-
-  } else {
-
-    console.log("Not logged in");
-
-    loginSection.style.display = "block";
-    dashboardSection.style.display = "none";
+  if (!user) {
+    loginView.classList.remove("hidden");
+    dashboardView.classList.add("hidden");
+    currentUser.textContent = "";
+    return;
   }
 
-});
-
-
-// ============================================================
-// LOGIN
-// ============================================================
-
-loginForm.addEventListener("submit", async (event) => {
-
-  event.preventDefault();
-
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  loginMessage.textContent = "Signing in...";
+  loginView.classList.add("hidden");
+  dashboardView.classList.remove("hidden");
+  currentUser.textContent = user.email || "Signed-in user";
 
   try {
+    // Force-refresh claims so an admin claim added recently is detected.
+    const token = await getIdTokenResult(user, true);
 
-    await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    loginMessage.textContent = "Login successful.";
-
-    // Clean URL
-    window.history.replaceState(
-      {},
-      document.title,
-      window.location.pathname
-    );
-
+    if (token.claims.admin !== true) {
+      setMessage(
+        dashboardMessage,
+        "Login successful, but this Firebase account does not have the admin claim (admin: true). Firestore rules may block dashboard data. Add the admin custom claim, then sign out and sign in again.",
+        "error"
+      );
+    } else {
+      setMessage(dashboardMessage, "Admin access verified.", "success");
+    }
   } catch (error) {
+    console.error("CLAIM CHECK ERROR:", error);
+  }
 
+  await Promise.all([loadProjects(), loadPosts()]);
+});
+
+// Prevent the browser from submitting the login form as a GET request.
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = adminEmail.value.trim();
+  const password = adminPassword.value;
+
+  if (!email || !password) {
+    setMessage(loginMessage, "Enter your email and password.", "error");
+    return;
+  }
+
+  setBusy(loginBtn, true, "Signing in…", "Sign in");
+  setMessage(loginMessage, "Signing in…");
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+
+    // Remove old ?email=...&password=... query strings if they exist.
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    setMessage(loginMessage, "Login successful.", "success");
+  } catch (error) {
     console.error("LOGIN ERROR:", error);
 
-    let message = "Login failed.";
+    const messages = {
+      "auth/invalid-credential": "Email or password is incorrect.",
+      "auth/invalid-email": "Please enter a valid email address.",
+      "auth/user-not-found": "No Firebase Authentication user was found with this email.",
+      "auth/wrong-password": "Incorrect password.",
+      "auth/too-many-requests": "Too many attempts. Please try again later.",
+      "auth/user-disabled": "This Firebase Authentication user is disabled."
+    };
 
-    if (error.code === "auth/invalid-credential") {
-      message = "Email or password is incorrect.";
-    }
-
-    if (error.code === "auth/invalid-email") {
-      message = "Please enter a valid email address.";
-    }
-
-    if (error.code === "auth/user-not-found") {
-      message = "No Firebase user found with this email.";
-    }
-
-    if (error.code === "auth/wrong-password") {
-      message = "Incorrect password.";
-    }
-
-    if (error.code === "auth/too-many-requests") {
-      message = "Too many attempts. Please try again later.";
-    }
-
-    loginMessage.textContent = message;
+    setMessage(
+      loginMessage,
+      messages[error.code] || `Login failed: ${error.message}`,
+      "error"
+    );
+  } finally {
+    setBusy(loginBtn, false, "Signing in…", "Sign in");
   }
-
 });
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
 
 logoutBtn.addEventListener("click", async () => {
-
   await signOut(auth);
-
 });
 
+// ------------------------------
+// TABS
+// ------------------------------
+document.querySelectorAll("[data-tab]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const tab = button.dataset.tab;
 
-// ============================================================
-// LOAD PROJECTS
-// ============================================================
-
-async function loadProjects() {
-
-  projectsList.innerHTML = "Loading projects...";
-
-  try {
-
-    const q = query(
-      collection(db, "projects"),
-      orderBy("createdAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-
-      projectsList.innerHTML = "<p>No projects yet.</p>";
-      return;
-    }
-
-    projectsList.innerHTML = "";
-
-    snapshot.forEach((item) => {
-
-      const data = item.data();
-
-      const div = document.createElement("div");
-
-      div.className = "admin-item";
-
-      div.innerHTML = `
-        <div>
-          <strong>${escapeHTML(data.title || "Untitled")}</strong>
-
-          <p>${escapeHTML(data.description || "")}</p>
-
-          <small>
-            ${data.published ? "Published" : "Draft"}
-          </small>
-        </div>
-
-        <div class="admin-actions">
-
-          <button
-            type="button"
-            data-edit-project="${item.id}">
-            Edit
-          </button>
-
-          <button
-            type="button"
-            data-delete-project="${item.id}">
-            Delete
-          </button>
-
-        </div>
-      `;
-
-      projectsList.appendChild(div);
-
+    document.querySelectorAll("[data-tab]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.tab === tab);
     });
 
-    document.querySelectorAll("[data-delete-project]")
-      .forEach(button => {
+    document.getElementById("projectsTab").classList.toggle("hidden", tab !== "projects");
+    document.getElementById("postsTab").classList.toggle("hidden", tab !== "posts");
+  });
+});
 
-        button.addEventListener("click", () => {
-          deleteProject(button.dataset.deleteProject);
-        });
+// ------------------------------
+// PROJECT FORM
+// ------------------------------
+newProjectBtn.addEventListener("click", () => openProjectForm());
+cancelProjectBtn.addEventListener("click", () => closeProjectForm());
 
-      });
-
-  } catch (error) {
-
-    console.error("PROJECT LOAD ERROR:", error);
-
-    projectsList.innerHTML = `
-      <p>
-        Cannot load projects.
-        Check your Firestore Rules and admin permission.
-      </p>
-    `;
-  }
-
+function openProjectForm(data = null, id = "") {
+  projectForm.classList.remove("hidden");
+  projectId.value = id;
+  document.getElementById("projectTitle").value = data?.title || "";
+  document.getElementById("projectDescription").value = data?.description || "";
+  document.getElementById("projectUrl").value = data?.url || "";
+  document.getElementById("projectLabel").value = data?.label || "";
+  document.getElementById("projectTags").value = Array.isArray(data?.tags) ? data.tags.join(", ") : "";
+  document.getElementById("projectPublished").checked = data?.published !== false;
+  document.getElementById("saveProjectBtn").textContent = id ? "Update project" : "Save project";
+  projectForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-
-// ============================================================
-// LOAD POSTS
-// ============================================================
-
-async function loadPosts() {
-
-  postsList.innerHTML = "Loading blog posts...";
-
-  try {
-
-    const q = query(
-      collection(db, "posts"),
-      orderBy("createdAt", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-
-      postsList.innerHTML = "<p>No blog posts yet.</p>";
-      return;
-    }
-
-    postsList.innerHTML = "";
-
-    snapshot.forEach((item) => {
-
-      const data = item.data();
-
-      const div = document.createElement("div");
-
-      div.className = "admin-item";
-
-      div.innerHTML = `
-        <div>
-
-          <strong>
-            ${escapeHTML(data.title || "Untitled")}
-          </strong>
-
-          <p>
-            ${escapeHTML(data.excerpt || "")}
-          </p>
-
-          <small>
-            ${data.published ? "Published" : "Draft"}
-          </small>
-
-        </div>
-
-        <div class="admin-actions">
-
-          <button
-            type="button"
-            data-delete-post="${item.id}">
-            Delete
-          </button>
-
-        </div>
-      `;
-
-      postsList.appendChild(div);
-
-    });
-
-    document.querySelectorAll("[data-delete-post]")
-      .forEach(button => {
-
-        button.addEventListener("click", () => {
-          deletePost(button.dataset.deletePost);
-        });
-
-      });
-
-  } catch (error) {
-
-    console.error("POST LOAD ERROR:", error);
-
-    postsList.innerHTML = `
-      <p>
-        Cannot load posts.
-        Check your Firestore Rules and admin permission.
-      </p>
-    `;
-  }
-
+function closeProjectForm() {
+  projectForm.reset();
+  projectId.value = "";
+  document.getElementById("projectPublished").checked = true;
+  projectForm.classList.add("hidden");
+  setMessage(projectMessage, "");
 }
-
-
-// ============================================================
-// ADD PROJECT
-// ============================================================
 
 projectForm.addEventListener("submit", async (event) => {
-
   event.preventDefault();
+  setMessage(projectMessage, "Saving…");
 
-  projectMessage.textContent = "Saving...";
+  const id = projectId.value.trim();
+  const data = {
+    title: document.getElementById("projectTitle").value.trim(),
+    description: document.getElementById("projectDescription").value.trim(),
+    url: document.getElementById("projectUrl").value.trim(),
+    label: document.getElementById("projectLabel").value.trim(),
+    tags: document.getElementById("projectTags").value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    published: document.getElementById("projectPublished").checked
+  };
 
   try {
-
-    const title =
-      document.getElementById("projectTitle").value.trim();
-
-    const description =
-      document.getElementById("projectDescription").value.trim();
-
-    const url =
-      document.getElementById("projectUrl").value.trim();
-
-    const label =
-      document.getElementById("projectLabel").value.trim();
-
-    const tags =
-      document.getElementById("projectTags").value
-        .split(",")
-        .map(tag => tag.trim())
-        .filter(Boolean);
-
-    const published =
-      document.getElementById("projectPublished").checked;
-
-
-    await addDoc(
-      collection(db, "projects"),
-      {
-        title,
-        description,
-        url,
-        label,
-        tags,
-        published,
+    if (id) {
+      await updateDoc(doc(db, "projects", id), data);
+      setMessage(projectMessage, "Project updated successfully.", "success");
+    } else {
+      await addDoc(collection(db, "projects"), {
+        ...data,
         createdAt: serverTimestamp()
-      }
-    );
-
-
-    projectForm.reset();
-
-    projectMessage.textContent =
-      "Project saved successfully.";
+      });
+      setMessage(projectMessage, "Project saved successfully.", "success");
+    }
 
     await loadProjects();
-
+    setTimeout(closeProjectForm, 500);
   } catch (error) {
-
-    console.error("ADD PROJECT ERROR:", error);
-
-    projectMessage.textContent =
-      "Could not save project. Check Firestore permissions.";
+    console.error("PROJECT SAVE ERROR:", error);
+    setMessage(projectMessage, friendlyFirestoreError(error), "error");
   }
-
 });
 
+// ------------------------------
+// BLOG FORM
+// ------------------------------
+newPostBtn.addEventListener("click", () => openPostForm());
+cancelPostBtn.addEventListener("click", () => closePostForm());
 
-// ============================================================
-// ADD BLOG POST
-// ============================================================
+function openPostForm(data = null, id = "") {
+  postForm.classList.remove("hidden");
+  postId.value = id;
+  document.getElementById("postTitle").value = data?.title || "";
+  document.getElementById("postExcerpt").value = data?.excerpt || "";
+  document.getElementById("postContent").value = data?.content || "";
+  document.getElementById("postPublished").checked = data?.published !== false;
+  document.getElementById("savePostBtn").textContent = id ? "Update post" : "Save post";
+  postForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closePostForm() {
+  postForm.reset();
+  postId.value = "";
+  document.getElementById("postPublished").checked = true;
+  postForm.classList.add("hidden");
+  setMessage(postMessage, "");
+}
 
 postForm.addEventListener("submit", async (event) => {
-
   event.preventDefault();
+  setMessage(postMessage, "Saving…");
 
-  postMessage.textContent = "Saving...";
+  const id = postId.value.trim();
+  const data = {
+    title: document.getElementById("postTitle").value.trim(),
+    excerpt: document.getElementById("postExcerpt").value.trim(),
+    content: document.getElementById("postContent").value.trim(),
+    published: document.getElementById("postPublished").checked
+  };
 
   try {
-
-    const title =
-      document.getElementById("postTitle").value.trim();
-
-    const excerpt =
-      document.getElementById("postExcerpt").value.trim();
-
-    const content =
-      document.getElementById("postContent").value.trim();
-
-    const published =
-      document.getElementById("postPublished").checked;
-
-
-    await addDoc(
-      collection(db, "posts"),
-      {
-        title,
-        excerpt,
-        content,
-        published,
+    if (id) {
+      await updateDoc(doc(db, "posts", id), data);
+      setMessage(postMessage, "Blog post updated successfully.", "success");
+    } else {
+      await addDoc(collection(db, "posts"), {
+        ...data,
         createdAt: serverTimestamp()
-      }
-    );
-
-
-    postForm.reset();
-
-    postMessage.textContent =
-      "Blog post saved successfully.";
+      });
+      setMessage(postMessage, "Blog post saved successfully.", "success");
+    }
 
     await loadPosts();
-
+    setTimeout(closePostForm, 500);
   } catch (error) {
-
-    console.error("ADD POST ERROR:", error);
-
-    postMessage.textContent =
-      "Could not save blog post. Check Firestore permissions.";
+    console.error("POST SAVE ERROR:", error);
+    setMessage(postMessage, friendlyFirestoreError(error), "error");
   }
-
 });
 
-
-// ============================================================
-// DELETE PROJECT
-// ============================================================
-
-async function deleteProject(id) {
-
-  if (!confirm("Delete this project?")) {
-    return;
-  }
+// ------------------------------
+// PROJECTS
+// ------------------------------
+async function loadProjects() {
+  projectsList.innerHTML = '<div class="empty">Loading projects…</div>';
 
   try {
+    const snapshot = await getDocs(collection(db, "projects"));
+    const items = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
 
-    await deleteDoc(
-      doc(db, "projects", id)
-    );
+    items.sort((a, b) => timestampMs(b.createdAt) - timestampMs(a.createdAt));
 
-    await loadProjects();
+    if (!items.length) {
+      projectsList.innerHTML = '<div class="empty">No projects yet.</div>';
+      return;
+    }
 
+    projectsList.innerHTML = items.map((item) => `
+      <article class="item">
+        <div>
+          <strong>${escapeHTML(item.title || "Untitled")}</strong>
+          <small>${escapeHTML(item.description || "")}</small>
+          <span class="${item.published ? "live" : "draft"}">
+            ${item.published ? "Published" : "Draft"}
+          </span>
+        </div>
+        <div class="row-actions">
+          <button type="button" data-edit-project="${item.id}">Edit</button>
+          <button type="button" class="danger" data-delete-project="${item.id}">Delete</button>
+        </div>
+      </article>
+    `).join("");
+
+    document.querySelectorAll("[data-edit-project]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const item = items.find((x) => x.id === button.dataset.editProject);
+        if (item) openProjectForm(item, item.id);
+      });
+    });
+
+    document.querySelectorAll("[data-delete-project]").forEach((button) => {
+      button.addEventListener("click", () => deleteProject(button.dataset.deleteProject));
+    });
   } catch (error) {
-
-    console.error("DELETE PROJECT ERROR:", error);
-
-    alert("Could not delete project.");
-
+    console.error("PROJECT LOAD ERROR:", error);
+    projectsList.innerHTML = `<div class="empty">${escapeHTML(friendlyFirestoreError(error))}</div>`;
   }
-
 }
 
+// ------------------------------
+// BLOG POSTS
+// ------------------------------
+async function loadPosts() {
+  postsList.innerHTML = '<div class="empty">Loading blog posts…</div>';
 
-// ============================================================
-// DELETE POST
-// ============================================================
+  try {
+    const snapshot = await getDocs(collection(db, "posts"));
+    const items = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+
+    items.sort((a, b) => timestampMs(b.createdAt) - timestampMs(a.createdAt));
+
+    if (!items.length) {
+      postsList.innerHTML = '<div class="empty">No blog posts yet.</div>';
+      return;
+    }
+
+    postsList.innerHTML = items.map((item) => `
+      <article class="item">
+        <div>
+          <strong>${escapeHTML(item.title || "Untitled")}</strong>
+          <small>${escapeHTML(item.excerpt || "")}</small>
+          <span class="${item.published ? "live" : "draft"}">
+            ${item.published ? "Published" : "Draft"}
+          </span>
+        </div>
+        <div class="row-actions">
+          <button type="button" data-edit-post="${item.id}">Edit</button>
+          <button type="button" class="danger" data-delete-post="${item.id}">Delete</button>
+        </div>
+      </article>
+    `).join("");
+
+    document.querySelectorAll("[data-edit-post]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const item = items.find((x) => x.id === button.dataset.editPost);
+        if (item) openPostForm(item, item.id);
+      });
+    });
+
+    document.querySelectorAll("[data-delete-post]").forEach((button) => {
+      button.addEventListener("click", () => deletePost(button.dataset.deletePost));
+    });
+  } catch (error) {
+    console.error("POST LOAD ERROR:", error);
+    postsList.innerHTML = `<div class="empty">${escapeHTML(friendlyFirestoreError(error))}</div>`;
+  }
+}
+
+// ------------------------------
+// DELETE
+// ------------------------------
+async function deleteProject(id) {
+  if (!confirm("Delete this project?")) return;
+
+  try {
+    await deleteDoc(doc(db, "projects", id));
+    await loadProjects();
+  } catch (error) {
+    console.error("DELETE PROJECT ERROR:", error);
+    alert(friendlyFirestoreError(error));
+  }
+}
 
 async function deletePost(id) {
-
-  if (!confirm("Delete this blog post?")) {
-    return;
-  }
+  if (!confirm("Delete this blog post?")) return;
 
   try {
-
-    await deleteDoc(
-      doc(db, "posts", id)
-    );
-
+    await deleteDoc(doc(db, "posts", id));
     await loadPosts();
-
   } catch (error) {
-
     console.error("DELETE POST ERROR:", error);
-
-    alert("Could not delete blog post.");
-
+    alert(friendlyFirestoreError(error));
   }
-
 }
 
+// ------------------------------
+// HELPERS
+// ------------------------------
+function timestampMs(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (value.seconds) return value.seconds * 1000;
+  return 0;
+}
 
-// ============================================================
-// HTML ESCAPE
-// ============================================================
+function friendlyFirestoreError(error) {
+  if (error?.code === "permission-denied") {
+    return "Firestore permission denied. Make sure this account has the admin custom claim (admin: true) and your Firestore rules allow admins.";
+  }
+  if (error?.code === "failed-precondition") {
+    return "Firestore is not ready or the database/rules configuration needs attention.";
+  }
+  return error?.message || "Something went wrong.";
+}
 
 function escapeHTML(value) {
-
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-
 }
