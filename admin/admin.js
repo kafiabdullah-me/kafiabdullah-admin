@@ -127,6 +127,7 @@ loginForm.addEventListener("submit", async (event) => {
     console.error("LOGIN ERROR:", error);
 
     const messages = {
+      "auth/api-key-not-valid": "Firebase API key is invalid or restricted. Update admin/firebase-config.js with the current Web App config from Firebase Console.",
       "auth/invalid-credential": "Email or password is incorrect.",
       "auth/invalid-email": "Please enter a valid email address.",
       "auth/user-not-found": "No Firebase Authentication user was found with this email.",

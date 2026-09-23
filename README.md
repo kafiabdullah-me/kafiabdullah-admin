@@ -65,3 +65,16 @@ It must NOT contain:
 `from "firebase/app"`
 
 Do not open the admin page with `file://`; use the Render URL or a local HTTP server.
+
+
+## IMPORTANT: Firebase API key error
+
+If the browser shows:
+
+`auth/api-key-not-valid`
+
+the JavaScript module setup is working, but Firebase is rejecting the API key. Open Firebase Console → Project settings → General → Your apps → Web app → SDK setup and configuration → Config, then copy the CURRENT `apiKey` into `admin/firebase-config.js`.
+
+Also check Google Cloud Console → APIs & Services → Credentials → the Web API key used by Firebase. If API restrictions are enabled, make sure Firebase Authentication / Identity Toolkit is allowed, or temporarily use the Firebase-created key without an incompatible restriction while testing.
+
+After changing the config, commit/push to GitHub and redeploy on Render.

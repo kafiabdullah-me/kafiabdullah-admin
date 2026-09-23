@@ -1,12 +1,15 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+/*
+  Firebase Web configuration
+  This file is shared by the admin panel and the public website.
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+  IMPORTANT:
+  - Firebase Web API keys are identifiers, not server secrets.
+  - Do NOT put a Firebase Admin SDK/service-account JSON here.
+  - If Firebase reports auth/api-key-not-valid, copy the CURRENT
+    Web App config from Firebase Console > Project settings > General.
+*/
+
+export const firebaseConfig = {
   apiKey: "AIzaSyCuceRc2cKcZCSAXJnq1i-dGxBazcMHy-8",
   authDomain: "kafi-abdullah-portfolio.firebaseapp.com",
   projectId: "kafi-abdullah-portfolio",
@@ -15,7 +18,3 @@ const firebaseConfig = {
   appId: "1:888081919366:web:a0edf5b778e5d7334a1007",
   measurementId: "G-PHRH3HYWJT"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
